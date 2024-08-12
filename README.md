@@ -17,6 +17,6 @@ Each case-study folder contains the following files
 
 **Note**: 
 - Solutions are coded in **MySQL**
-- 
+  
 ## Support
 Give a ⭐️ if you like this project!
