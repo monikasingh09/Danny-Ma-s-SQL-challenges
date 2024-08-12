@@ -9,7 +9,6 @@
 
 
 :ramen: :curry: :sushi:
-If you have any questions, reach out to me on [LinkedIn](https://www.linkedin.com/in/kasimuthuveerappan/).
 
 Please note that all the information regarding the case study has been sourced from the following link: [here](https://8weeksqlchallenge.com/case-study-1/). 
 
@@ -46,7 +45,6 @@ Danny wants to use the data to answer a few simple questions about his customers
 
 ## 🪢Entity Relationship Diagram
 
-<kbd>![Screenshot 2023-09-15 094422](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/b702bf7f-77c4-4dc0-9cc8-db72e45df044)
-</kbd>
+<kbd>![Screenshot 2023-09-15 094422]</kbd>
 
 ***
