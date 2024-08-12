@@ -45,6 +45,7 @@ Danny wants to use the data to answer a few simple questions about his customers
 
 ## 🪢Entity Relationship Diagram
 
-<kbd>![Screenshot 2023-09-15 094422]</kbd>
+![image](https://github.com/user-attachments/assets/9f6ac3f4-2f4d-4b1d-b172-58903eecbccc)
+
 
 ***
