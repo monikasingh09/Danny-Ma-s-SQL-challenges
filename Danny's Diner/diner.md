@@ -19,60 +19,53 @@
 - Maintenance: Views ease database maintenance by isolating changes and providing code reusability.
 
 ```sql
-CREATE VIEW diner_res AS(
-    SELECT 
-        *
-    FROM
-        sales s
-            JOIN
-        menu m USING (product_id)
-            LEFT JOIN
-        members ms USING (customer_id)
+Create view  diner_loyality as(
+	select s.customer_id, s.order_date, s.product_id, m.product_name, m.price, mem.join_date
+    from sales s 
+    join menu m 
+    on s.product_id = m.product_id 
+    left join members mem
+    on s.customer_id = mem.customer_id
+    
 );
-
-SELECT 
-    *
-FROM
-    diner_res;
 
 ```
 
 ### Output:
-<kbd>![Screenshot 2023-09-15 094825](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/9abf79e7-442d-4ae9-aea8-72a945e353fb)</kbd>
+![image](https://github.com/user-attachments/assets/88df83b3-cc13-4347-92e0-7d44897d7681)
 
 ***
 
 **Q-1. What is the total amount each customer spent at the restaurant?**
 
 ```sql
-SELECT 
-    customer_id, concat('$ ',SUM(price)) AS tot_amt
-FROM
-    diner_res
-GROUP BY 1;
+select customer_id, sum(price) as total_amount	
+from  diner_loyality 
+group by customer_id;
 ```
 
 
 #### Output:
 
-<kbd>![Screenshot 2023-09-15 100707](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/d819f57f-94c8-4647-9078-d558a576a957)</kbd>
+![image](https://github.com/user-attachments/assets/104e1ad8-fb9a-47d7-be6f-5449c2d58f75)
+
 
 #### Insights:
 
-- Customer A spent $76.
-- Customer B spent $74.
-- Customer C spent $36.
+- Customer A spent 76.
+- Customer B spent 74.
+- Customer C spent 36.
 
 *** 
 
 **Q-2. How many days has each customer visited the restaurant?**
 
 ```sql
-SELECT 
-    customer_id, concat(COUNT(distinct order_date),' days') AS cust_visit
-FROM
-    diner_res
-GROUP BY 1;
+select customer_id, count(distinct order_date ) as days_visit	
+from sales  
+group by customer_id;
+
+
 ```
 
 #### Steps:
@@ -80,7 +73,7 @@ GROUP BY 1;
 - It's important to apply the **DISTINCT** keyword while calculating the visit count to avoid duplicate counting of days. For instance, if Customer A visited the restaurant twice on '2021–01–07', counting without **DISTINCT** would result in 2 days instead of the accurate count of 1 day.
 
 #### Output:
-<kbd>![Screenshot 2023-09-15 101346](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/9a249c17-075a-4484-899a-76978a80cafa)</kbd>
+![image](https://github.com/user-attachments/assets/3ceda15f-efb5-46c3-9177-27a1205f8d3d)
 
 #### Insights:
 
@@ -93,26 +86,21 @@ GROUP BY 1;
 **Q-3. What was the first item from the menu purchased by each customer?**
 
 ```sql
-SELECT
-    customer_id,product_name
-FROM (
-    SELECT *,
-    dense_rank() over(partition by customer_id order by order_date) as rn
-FROM
-    diner_res
-)AS c 
-WHERE
-    rn=1
-GROUP BY 1,2;
+select s.customer_id, s.product_id, s.product_name
+from
+(select *, rank() over (partition by customer_id order by order_date) as rn
+from diner_loyality) s
+where rn = 1;
+
 ```
 #### Steps:
-- Create a Subquery, create a new column `rank` as rn and calculate the row number using **DENSE_RANK()** window function. The **PARTITION BY** clause divides the data by `customer_id`, and the **ORDER BY** clause orders the rows within each partition by `order_date`.
+- Create a Subquery, create a new column `rank` as rn and calculate the row number using **RANK()** window function. The **PARTITION BY** clause divides the data by `customer_id`, and the **ORDER BY** clause orders the rows within each partition by `order_date`.
 - In the outer query, select the appropriate columns and apply a filter in the **WHERE** clause to retrieve only the rows where the rank column equals 1, which represents the first row within each `customer_id` partition.
-- Use the GROUP BY clause to group the result by `customer_id` and `product_name`.
-- we could have also used Common Table Expression CTE for the same.
+
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 102614](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/e8705993-43b1-4a58-a662-89897681cc9d)</kbd>
+![image](https://github.com/user-attachments/assets/c4b0a909-2bbf-4327-85f4-5d4f63eb163c)
+
 
 #### Insights:
 
@@ -120,34 +108,26 @@ GROUP BY 1,2;
 - Customer B's first order is curry.
 - Customer C's first order is ramen.
 
-I thought of using of `ROW_NUMBER()` instead of `DENSE_RANK()` for determining the "first order" in this question. 
-
-But, since the `order_date` does not have a timestamp, it is impossible to determine the exact sequence of items ordered by the customer. 
-
-Therefore, it would be inaccurate to conclude that curry is the customer's first order purely based on the alphabetical order of the product names. For this reason, I hold on to my solution of using `DENSE_RANK()` and consider both curry and sushi as Customer A's first order.
-
-Also if you see the C ordered raman twice on the first order but still we consider it as a same order
 
 ***
 
 **Q-4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
 
 ```sql
-SELECT 
-    product_name, COUNT(customer_id) AS times_cust_bought
-FROM
-    diner_res
-GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 1;
+select product_name , count(customer_id) as no_of_purchase
+from diner_loyality
+group by 1
+order by 2 desc
+limit 1;
+
 ```
 
 #### Steps:
-- Perform a **COUNT** aggregation on the `product_id` column and **ORDER BY** the result in descending order using `times_cust_bought` column.
+- Perform **GROUP BY** on product_name and  **COUNT** aggregation on the `customer_id` column and **ORDER BY** the result in descending order using `no_of_purchase` column.
 - Apply the **LIMIT** 1 clause to filter and retrieve the highest number of purchased items.
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 103011](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/342610c9-9ebe-463b-93dd-c768cf4ccc35)</kbd>
+![image](https://github.com/user-attachments/assets/e93cd275-b778-4bce-b652-08887ff2f674)
 
 #### Insights:
 
@@ -158,32 +138,22 @@ LIMIT 1;
 **Q-5. Which item was the most popular for each customer?**
 
 ```sql
-with popular_item as(
-SELECT
-    customer_id,product_name,
-    dense_rank() over(partition by customer_id  order by count(product_name)desc) as rn
-FROM
-    diner_res
-GROUP BY 1,2
-)
+select distinct customer_id, product_name
+from (select *, rank() over(partition by customer_id order by product_count desc) as rn
+from
+(select customer_id,product_name, count(product_name) over(partition by customer_id, product_name) as product_count
+from diner_loyality)s ) final
+where rn = 1;
 
-SELECT
-    customer_id,product_name
-FROM
-    popular_item
-WHERE
-    rn = 1;
 ```
 *Each user may have more than 1 favourite item.*
 
 #### Steps:
-- Create a CTE named `popular_item`.
-- Group results by `customer_id` and `product_name` and calculate the count of `product_id` occurrences for each group. 
-- Utilize the **DENSE_RANK()** window function to calculate the ranking of each `customer_id` partition based on the count of orders **COUNT(`product_name`)** in descending order.
+- Utilize the **RANK()** window function to calculate the ranking of each `customer_id` partition based on the count of orders **COUNT(`product_name`)** in descending order.
 - In the outer query, select the appropriate columns and apply a filter in the **WHERE** clause to retrieve only the rows where the rank column equals 1, representing the rows with the highest order count for each customer.
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 104005](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/ce7ab74f-a7fb-4b2f-b5b8-eeb47bfcf409)</kbd>
+![image](https://github.com/user-attachments/assets/cd3e6193-ce26-4cfb-9b53-a8e1cced31bc)
 
 #### Insights:
 
@@ -195,39 +165,23 @@ WHERE
 **Q-6. Which item was purchased first by the customer after they became a member?**
 
 ```sql
-WITH first_purchase_cte AS
-(
-SELECT *,
-    rank() over(partition by customer_id order by diff) as rn
-FROM
-(
-SELECT *,
-    ABS(order_date-join_date) as diff
-FROM
-    diner_res
-WHERE
-    order_date>=join_date
-)AS c
-)
-
-SELECT
-    customer_id,product_name,order_date,join_date
-FROM
-    first_purchase_cte
-WHERE
-    rn=1;
+select s.customer_id, s.product_name
+from
+(select *, rank() over(partition by customer_id order by order_date) as rn
+from diner_loyality
+where order_date >= join_date) s 
+where rn =1;
 
 ```
 
 #### Steps:
-- Create a CTE named `first_purchase_cte`.
-- Use `abs` on date difference `order_date-join_date`. 
-- Utilize the **RANK()** window function to calculate the ranking of each `customer_id` partition based on the date of orders **diff** in ascending order.
+
+- Utilize the **RANK()** window function to calculate the ranking of each `customer_id` partition based on the date of orders  in ascending order.
 - In **WHERE** clause, we use `order_date` greater than or equal to `join_date`
 - In the outer query, select the appropriate columns and apply a filter in the **WHERE** clause to retrieve only the rows where the rank column equals 1, representing the rows with the first ordered item for each customer.
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 111908](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/3107f637-8804-4d0f-b415-539e852b1f54)</kbd>
+![image](https://github.com/user-attachments/assets/308a37e6-e8e8-4ba8-b2f9-117f93092145)
 
 #### Insights:
 
@@ -240,40 +194,23 @@ WHERE
 ### Q-7. Which item was purchased just before the customer became a member?
 
 ```sql
-WITH purchase_cte AS(
-SELECT *,
-    rank() over(partition by customer_id order by diff) as rn
-FROM
-(
-SELECT *,
-    abs(order_date-join_date) as diff
-FROM
-    diner_res
-WHERE
-    order_date<join_date
-)AS c
-)
-SELECT
-    customer_id,
-    group_concat(product_name) as items_bought,
-    order_date,join_date
-FROM
-    purchase_cte 
-WHERE
-    rn=1
-group by 1,3,4;
+select s.customer_id, s.product_name
+from
+(select *, rank() over(partition by customer_id order by order_date desc) as rn
+from diner_loyality
+where order_date < join_date) s 
+where rn =1;
 ```
 
 #### Steps:
-- Create a CTE named `purchase_cte`.
-- Use `abs` on date difference `order_date-join_date`. 
-- Utilize the **RANK()** window function to calculate the ranking of each `customer_id` partition based on the date of orders **diff** in ascending order.
+ 
+- Utilize the **RANK()** window function to calculate the ranking of each `customer_id` partition based on the date of orders .
 - In **WHERE** clause, we use `order_date` less than `join_date`
 - In the outer query, select the appropriate columns and apply a filter in the **WHERE** clause to retrieve only the rows where the rank column equals 1, representing the rows with the ordered item before becoming a member for each customer.
-- *Group_concat* is used to concat the item_bought together by a customer
+
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 113558](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/294a6db1-27f8-4562-9a0b-cf2f2c9a7486)</kbd>
+![image](https://github.com/user-attachments/assets/5466fe55-9e96-48f4-9e9b-e289a94f4cd4)
 
 #### Insights:
 
@@ -286,31 +223,18 @@ group by 1,3,4;
 ### Q-8. What is the total items and amount spent for each member before they became a member?
 
 ```sql
-WITH before_member_cte AS
-(
-SELECT *
-FROM
-    diner_res
-WHERE
-    order_date < join_date
-)
-
-SELECT
-    customer_id,
-    count(product_id) as total_items_bought,
-    concat('$ ',sum(price)) as total_cost
-FROM
-    before_member_cte
-GROUP BY 1
-ORDER BY 1;
+select customer_id, count(product_id) as total_item, sum(price) as amount_spent
+from diner_loyality
+where order_date < join_date
+group by 1
+order by 1;
 ```
 #### Steps:
-- Create a CTE named `before_member_cte`.
 - In **WHERE** clause, we use `order_date` less than `join_date`
-- In the outer query, select the appropriate columns with **count**`product_id` with **sum**`price` as *total_cost* representing the rows with the ordered items count with total_cost spent before becoming a member for each customer.
+- In the outer query, select the appropriate columns with **count**`product_id` with **sum**`price` as *total_cost* representing the rows with the ordered items count with amount spent before becoming a member for each customer.
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 114923](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/666a5edf-4b04-4960-be1f-2815862923ff)</kbd>
+![image](https://github.com/user-attachments/assets/4c6c3001-9a4a-480a-9ea6-4e2fb148911e)
 
 #### Insights:
 
@@ -323,27 +247,25 @@ Before becoming members,
 **Q-9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier — how many points would each customer have?**
 
 ```sql
-SELECT 
-    customer_id,
-    SUM(CASE
-        WHEN product_name IN ('curry' , 'ramen') THEN price * 10
-        ELSE price * 20
-    END) AS points
-FROM
-    diner_res
-GROUP BY 1;
+select customer_id,
+	sum(case when product_name = 'sushi' then price * 20
+    else price * 10
+    end )as points
+from diner_loyality
+group by 1;
+   
 ```
 
 #### Steps:
 Let's break down the question to understand the point calculation for each customer's purchases.
-- Each $1 spent = 10 points. However, `product_id` 1 sushi gets 2x points, so each $1 spent = 20 points.
+- Each $1 spent = 10 points. However, `product_name`  sushi gets 2x points, so each $1 spent = 20 points.
 - Here's how the calculation is performed using a conditional CASE statement:
-	- If product_id = 1, multiply every $1 by 20 points.
+	- If product_name = sushi, multiply every $1 by 20 points.
 	- Otherwise, multiply $1 by 10 points.
 - Then, calculate the total points for each customer.
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 115625](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/9bbdaaf0-bcac-40ce-b332-d685bcafc41e)</kbd>
+![image](https://github.com/user-attachments/assets/51612ac6-63c1-45fc-9ecb-75f163eefd89)
 
 #### Insights:
 
@@ -356,36 +278,31 @@ Let's break down the question to understand the point calculation for each custo
 **Q-10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi — how many points do customer A and B have at the end of January?**
 
 ```sql
-SELECT 
-    customer_id,
-    SUM(CASE
-        WHEN product_name = 'sushi' THEN price * 20
-        WHEN order_date BETWEEN join_date AND DATE_ADD(join_date, INTERVAL 6 DAY) THEN price * 20
-        ELSE price * 10
-    END) AS points
-FROM
-    diner_res
-WHERE
-    order_date >= join_date
-        AND EXTRACT(MONTH FROM order_date) = 1
-GROUP BY 1
-ORDER BY 1;
+
+select customer_id,
+	sum(case when order_date between join_date and date_add(join_date, interval 6 day)  or product_name = 'sushi'
+			then price*20
+			else price*10 end
+    ) as points
+from diner_loyality
+where order_date >= join_date and extract(month from order_date) = 1
+group by 1
+order by 1;
 ```
 
 #### Assumptions:
-- Before Day 1 (the day a customer becomes a member), each $1 spent earns 10 points. However, for sushi, each $1 spent earns 20 points.
 - From Day 1 to Day 7 (the first week of membership), each $1 spent for any items earns 20 points.
 - From Day 8 to the last day of January 2021, each $1 spent earns 10 points. However, sushi continues to earn double the points at 20 points per $1 spent.
 
 #### Steps:
 
 - In the query, calculate the points by using a `CASE` statement to determine the points based on our assumptions above. 
-- If the `product_name` is 'sushi', multiply the price by 20. For orders placed between `join_date` and `interval 6 day` (i.e the first week of memebership) , also multiply the price by 20. 
+- If the `product_name` is 'sushi'or orders placed between `join_date` and `interval 6 day` (i.e the first week of memebership)  multiply the price by 20. 
 - For all other products, multiply the price by 10.
 - Calculate the sum of points for each customer.
 
 #### Output: 
-<kbd>![Screenshot 2023-09-15 122210](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/8f286df2-915c-4b4f-8e5f-a8913eda7844)</kbd>
+![image](https://github.com/user-attachments/assets/54e3768d-62bd-4e8e-b9d1-a60e49a3b909)
 
 #### Insights:
 
@@ -394,65 +311,3 @@ ORDER BY 1;
 
 ***
 
-## BONUS QUESTIONS
-
-**Join All The Things**
-
-**Recreate the table with: customer_id, order_date, product_name, price, member (Y/N)**
-
-```sql
-SELECT 
-    customer_id,
-    order_date,
-    product_name,
-    price,
-    IF(order_date >= join_date, 'Y', 'N') AS member
-FROM
-    diner_res
-ORDER BY 1 , 2 , 3;
-```
-
-#### Steps:
-
-- Since we created a **`view`** called *`Diner_res`* on this it is easy to identity if the customer is a member or not.
-- Simple `IF` statement is suffice to identity those who are members.  
-
-#### Output: 
-<kbd>![Screenshot 2023-09-15 122453](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/6279e9c2-44e6-488f-b299-7de7b53ec9ac)</kbd>
-
-***
-
-**Rank All The Things**
-
-**Danny also requires further information about the ```ranking``` of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ```ranking``` values for the records when customers are not yet part of the loyalty program.**
-
-```sql
- WITH ranking_cte AS(
- SELECT 
-    customer_id,
-    order_date,
-    product_name,
-    price,
-    IF(order_date >= join_date, 'Y', 'N') AS member
-FROM
-    diner_res
-)
-
-SELECT *,
-    IF(member="N" , NULL , rank() over(partition by customer_id,member order by customer_id,order_date,product_name)) as ranking
-FROM
-    ranking_cte
-ORDER BY 1,2,3;
-```
-
-#### Steps:
-
-- Since we created a **`view`** called *`Diner_res`* on this it is easy to identity if the customer is a member or not.
-- Simple `IF` statement is suffice to identity those who are members.
-- Further `IF` statement is used and `Rank` window function is used for ranking customers based on customer_id and their membership.
-
-#### Output: 
-
-<kbd>![Screenshot 2023-09-15 123025](https://github.com/KasiMuthuveerappan/Danny-Ma-s-SQL-challenges/assets/142071405/af529c0d-2c7b-4de6-b5bc-68d429df8c5f)</kbd>
-
-***
